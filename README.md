@@ -40,18 +40,18 @@ To get started with Bango, follow these steps:
 
 2. **Build the Project**
    ```bash
-   go build
+   go build -o bango-server ./cmd
    ```
 3. **Run the Server**
    ```bash
-   ./bango
+   ./bango-server
    ```
 
 ## Example Requests
 ```bash
-curl -X GET http://localhost:8080/
+curl -X GET http://localhost:4221/
 ```
 **Response**
 ```html
-All ok!
+All OK!
 ```
