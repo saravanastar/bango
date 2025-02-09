@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/saravanastar/bango/internal/protocol"
+	"github.com/saravanastar/bango/pkg/protocol"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,7 +71,7 @@ func TestRead(t *testing.T) {
 	assert.Equal(t, protocol.GET, httpRequest.Http.Method)
 	assert.Equal(t, "/hello", httpRequest.Http.EndPoint)
 	assert.Equal(t, "HTTP/1.1", httpRequest.Http.ProtocolVersion)
-	assert.Equal(t, "Hello", httpRequest.Body)
+	assert.Equal(t, "Hello", string(httpRequest.Body))
 }
 
 func TestReadHeader(t *testing.T) {

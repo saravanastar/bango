@@ -3,8 +3,8 @@ package server_test
 import (
 	"testing"
 
-	"github.com/saravanastar/bango/internal/protocol"
-	"github.com/saravanastar/bango/internal/server"
+	"github.com/saravanastar/bango/pkg/protocol"
+	"github.com/saravanastar/bango/pkg/server"
 )
 
 func TestAddRouteSuccessScenario(t *testing.T) {

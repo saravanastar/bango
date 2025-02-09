@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/saravanastar/bango/internal/protocol"
+	"github.com/saravanastar/bango/pkg/protocol"
 )
 
 type IOHandler struct {

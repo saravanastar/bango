@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/saravanastar/bango/internal/protocol"
+	"github.com/saravanastar/bango/pkg/protocol"
 )
 
 type UrlTrie struct {
@@ -17,7 +17,7 @@ type UrlTrie struct {
 type RoutingGuide struct {
 	Method  protocol.HttpMethod
 	Url     string
-	Handler func(request *protocol.HttpRequest) *protocol.HttpResponse
+	Handler func(request *protocol.Context)
 	RouteType
 }
 
@@ -48,19 +48,19 @@ func (router *Router) AddRoute(routingGuide RoutingGuide) (bool, error) {
 	return router.addRouteTrie(&routingGuide)
 }
 
-func (router *Router) GET(url string, handler func(request *protocol.HttpRequest) *protocol.HttpResponse) (bool, error) {
+func (router *Router) GET(url string, handler func(request *protocol.Context)) (bool, error) {
 	return router.AddRoute(RoutingGuide{Url: url, Method: protocol.GET, Handler: handler})
 }
 
-func (router *Router) POST(url string, handler func(request *protocol.HttpRequest) *protocol.HttpResponse) (bool, error) {
+func (router *Router) POST(url string, handler func(*protocol.Context)) (bool, error) {
 	return router.AddRoute(RoutingGuide{Url: url, Method: protocol.POST, Handler: handler})
 }
 
-func (router *Router) PUT(url string, handler func(request *protocol.HttpRequest) *protocol.HttpResponse) (bool, error) {
+func (router *Router) PUT(url string, handler func(*protocol.Context)) (bool, error) {
 	return router.AddRoute(RoutingGuide{Url: url, Method: protocol.PUT, Handler: handler})
 }
 
-func (router *Router) DELETE(url string, handler func(request *protocol.HttpRequest) *protocol.HttpResponse) (bool, error) {
+func (router *Router) DELETE(url string, handler func(*protocol.Context)) (bool, error) {
 	return router.AddRoute(RoutingGuide{Url: url, Method: protocol.DELETE, Handler: handler})
 }
 

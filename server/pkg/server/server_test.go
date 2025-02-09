@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/saravanastar/bango/internal/protocol"
+	"github.com/saravanastar/bango/pkg/protocol"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,8 +36,8 @@ func (r *mockRouter) AddRoute(routingGuide RoutingGuide) (bool, error) {
 
 func (r *mockRouter) GetRoutingGuide(request protocol.HttpRequest) (*RoutingGuide, error) {
 	return &RoutingGuide{
-		Handler: func(req *protocol.HttpRequest) *protocol.HttpResponse {
-			return &protocol.HttpResponse{
+		Handler: func(context *protocol.Context) {
+			context.Response = &protocol.HttpResponse{
 				Http: protocol.Http{
 					ProtocolVersion: "HTTP/1.1",
 

@@ -6,7 +6,7 @@ import (
 	"net"
 
 	"github.com/saravanastar/bango/internal/io"
-	"github.com/saravanastar/bango/internal/protocol"
+	"github.com/saravanastar/bango/pkg/protocol"
 )
 
 type Server struct {
@@ -64,12 +64,12 @@ func (server *Server) readLoop(conn net.Conn) {
 	if err != nil {
 		fmt.Printf("Error getting routing guide for %v", httpRequest.Http.EndPoint)
 	}
-	httpResponse := protocol.HttpResponse{Http: protocol.Http{ProtocolVersion: "HTTP/1.1"}, ResponseCode: protocol.NOT_FOUND}
-	if routingGuide != nil {
-		httpResponseFromController := routingGuide.Handler(httpRequest)
-		if httpResponseFromController != nil {
-			httpResponse = *httpResponseFromController
-		}
+	httpResponse := &protocol.HttpResponse{Http: httpRequest.Http, ResponseCode: protocol.OK}
+	ctx := protocol.NewContext(httpRequest, httpResponse)
+	if routingGuide == nil {
+		httpResponse.ResponseCode = protocol.NOT_FOUND
+	} else {
+		routingGuide.Handler(ctx)
 	}
-	ioHandler.Write(httpResponse)
+	ioHandler.Write(*ctx.Response)
 }

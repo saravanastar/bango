@@ -48,8 +48,3 @@ var (
 	NOT_FOUND             ResponseCodes = ResponseCodes{Code: 404, ResponseString: "Not Found"}
 	INTERNAL_SERVER_ERROR ResponseCodes = ResponseCodes{Code: 500, ResponseString: "Internal Server Error"}
 )
-
-type Context struct {
-	Request  *HttpRequest
-	Response *HttpResponse
-}
