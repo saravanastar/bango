@@ -20,6 +20,7 @@ func main() {
 	flag.Parse()
 	server := server.NewServer(buildRouter())
 	server.Start(port)
+	fmt.Println("Server started at port", *port)
 }
 
 func buildRouter() *server.Router {
