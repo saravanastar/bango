@@ -25,7 +25,7 @@ func NewIOHandler(con net.Conn) *IOHandler {
 	return &IOHandler{reader: bufio.NewReader(con), writer: con}
 }
 func (ioHandler *IOHandler) Write(response protocol.HttpResponse) {
-	body := []byte(response.Http.Body)
+	body := []byte(response.Body)
 	if response.Http.Headers != nil {
 		response.Http.Headers["Content-Length"] = []string{strconv.Itoa(binary.Size(body))}
 	}
@@ -69,6 +69,7 @@ func (ioHandler *IOHandler) Read() (*protocol.HttpRequest, error) {
 
 	http.Headers = *headerPointer
 	contentLengthString, ok := http.Headers["Content-Length"]
+	var requestBody []byte
 	if ok {
 		contentLength, err := strconv.ParseInt(contentLengthString[0], 10, 32)
 		if err != nil {
@@ -78,10 +79,10 @@ func (ioHandler *IOHandler) Read() (*protocol.HttpRequest, error) {
 		if err != nil {
 			return nil, err
 		}
-		http.Body = string(body)
+		requestBody = body
 	}
 
-	return &protocol.HttpRequest{Http: http, PathParams: make(map[string]string), QueryParams: make(map[string]string)}, nil
+	return &protocol.HttpRequest{Http: http, PathParams: make(map[string]string), QueryParams: make(map[string]string), Body: requestBody}, nil
 }
 
 func (ioHandler *IOHandler) readHeader() (*protocol.Header, error) {

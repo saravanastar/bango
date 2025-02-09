@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/saravanastar/bango/internal/protocol"
@@ -9,48 +8,44 @@ import (
 )
 
 func TestAddRouteSuccessScenario(t *testing.T) {
-
 	// prepare
 	routingGuide := &server.RoutingGuide{Url: "/echo/{echoString}", Method: protocol.GET}
-
 	router := server.NewRoute()
 
 	// Execute
 	doesAdded, err := router.AddRoute(*routingGuide)
 
 	// Assert
-	if err != nil || doesAdded != true {
+	if err != nil || !doesAdded {
 		t.Errorf("Should add the route %v", routingGuide.Url)
 	}
-
 }
 
-func TestAddRoutAndTestWithGetRoutingGuide(t *testing.T) {
+func TestAddRouteAndTestWithGetRoutingGuide(t *testing.T) {
 	// prepare
-	routingGuide := &server.RoutingGuide{Url: "/echo/{echoString}", Method: protocol.GET}
-
+	routingGuide := &server.RoutingGuide{Url: "/echo/:echoString", Method: protocol.GET}
 	router := server.NewRoute()
 
 	// Execute
 	doesAdded, err := router.AddRoute(*routingGuide)
 
 	// Assert
-	if err != nil || doesAdded != true {
+	if err != nil || !doesAdded {
 		t.Errorf("Should add the route %v", routingGuide.Url)
 	}
-	http := protocol.Http{EndPoint: "/echo/test"}
-	httpRequest := protocol.HttpRequest{Http: http, PathParams: make(map[string]string)}
-	responseRoutingGuide, _ := router.GetRoutingGuide(httpRequest)
 
-	if responseRoutingGuide == nil {
+	http := protocol.Http{EndPoint: "/echo/test", Method: protocol.GET}
+	httpRequest := protocol.HttpRequest{Http: http, PathParams: make(map[string]string)}
+	responseRoutingGuide, err := router.GetRoutingGuide(httpRequest)
+
+	if err != nil || responseRoutingGuide == nil {
 		t.Errorf("Should find the route %v", http.EndPoint)
 	}
-
 }
 
-func TestAddRoutAndTestWithGetRoutingGuideAndMoreRoutes(t *testing.T) {
+func TestAddRouteAndTestWithGetRoutingGuideAndMoreRoutes(t *testing.T) {
 	// prepare
-	routingGuide1 := &server.RoutingGuide{Url: "/echo/{echoString}", Method: protocol.GET}
+	routingGuide1 := &server.RoutingGuide{Url: "/echo/:echoString/user", Method: protocol.GET}
 	routingGuide2 := &server.RoutingGuide{Url: "/", Method: protocol.GET}
 	routingGuide3 := &server.RoutingGuide{Url: "/contents/app/index.html", Method: protocol.GET}
 
@@ -62,47 +57,40 @@ func TestAddRoutAndTestWithGetRoutingGuideAndMoreRoutes(t *testing.T) {
 	doesAdded3, err3 := router.AddRoute(*routingGuide3)
 
 	// Assert
-	if err1 != nil || doesAdded1 != true {
+	if err1 != nil || !doesAdded1 {
 		t.Errorf("Should add the route %v", routingGuide1.Url)
 	}
-
-	// Assert
-	if err2 != nil || doesAdded2 != true {
+	if err2 != nil || !doesAdded2 {
 		t.Errorf("Should add the route %v", routingGuide2.Url)
 	}
-
-	// Assert
-	if err3 != nil || doesAdded3 != true {
+	if err3 != nil || !doesAdded3 {
 		t.Errorf("Should add the route %v", routingGuide3.Url)
 	}
 
-	http := protocol.Http{EndPoint: "/echo/test"}
+	http := protocol.Http{EndPoint: "/echo/test/user", Method: protocol.GET}
 	httpRequest := protocol.HttpRequest{Http: http, PathParams: make(map[string]string)}
-	responseRoutingGuide, _ := router.GetRoutingGuide(httpRequest)
+	responseRoutingGuide, err := router.GetRoutingGuide(httpRequest)
 
-	if responseRoutingGuide == nil {
+	if err != nil || responseRoutingGuide == nil {
 		t.Errorf("Should find the route %v", http.EndPoint)
 	}
-	fmt.Println("Printing the path params", httpRequest.PathParams)
 	if httpRequest.PathParams["echoString"] != "test" {
 		t.Errorf("Should copy the pathParams for the route %v", http.EndPoint)
 	}
 
-	http = protocol.Http{EndPoint: routingGuide2.Url}
+	http = protocol.Http{EndPoint: routingGuide2.Url, Method: protocol.GET}
 	httpRequest = protocol.HttpRequest{Http: http, PathParams: make(map[string]string)}
-	responseRoutingGuide, _ = router.GetRoutingGuide(httpRequest)
+	responseRoutingGuide, err = router.GetRoutingGuide(httpRequest)
 
-	if responseRoutingGuide == nil {
+	if err != nil || responseRoutingGuide == nil {
 		t.Errorf("Should find the route %v", http.EndPoint)
 	}
 
-	http = protocol.Http{EndPoint: routingGuide3.Url}
+	http = protocol.Http{EndPoint: routingGuide3.Url, Method: protocol.GET}
 	httpRequest = protocol.HttpRequest{Http: http, PathParams: make(map[string]string)}
-	responseRoutingGuide, _ = router.GetRoutingGuide(httpRequest)
+	responseRoutingGuide, err = router.GetRoutingGuide(httpRequest)
 
-	fmt.Println("Response Routing guid3", responseRoutingGuide)
-	if responseRoutingGuide == nil {
+	if err != nil || responseRoutingGuide == nil {
 		t.Errorf("Should find the route %v", http.EndPoint)
 	}
-
 }

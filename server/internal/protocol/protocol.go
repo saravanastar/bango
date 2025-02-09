@@ -5,18 +5,19 @@ type Http struct {
 	EndPoint        string
 	Headers         Header
 	Method          HttpMethod
-	Body            string
 }
 
 type HttpRequest struct {
 	Http        Http
 	PathParams  map[string]string
 	QueryParams map[string]string
+	Body        []byte
 }
 
 type HttpResponse struct {
 	Http         Http
 	ResponseCode ResponseCodes
+	Body         []byte
 }
 
 func NewHttpResponse(request *HttpRequest) *HttpResponse {
@@ -47,3 +48,8 @@ var (
 	NOT_FOUND             ResponseCodes = ResponseCodes{Code: 404, ResponseString: "Not Found"}
 	INTERNAL_SERVER_ERROR ResponseCodes = ResponseCodes{Code: 500, ResponseString: "Internal Server Error"}
 )
+
+type Context struct {
+	Request  *HttpRequest
+	Response *HttpResponse
+}

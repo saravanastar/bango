@@ -13,7 +13,7 @@ import (
 
 var (
 	port      = flag.String("port", ":4221", "Port to listen")
-	directory = flag.String("directory", "/tmp", "Directory to pull the content")
+	directory = flag.String("directory", "./", "Directory to pull the content")
 )
 
 func main() {
@@ -25,9 +25,9 @@ func main() {
 func buildRouter() *server.Router {
 	router := server.NewRoute()
 	router.AddRoute(server.RoutingGuide{Url: "/", Method: protocol.GET, Handler: homePage})
-	router.AddRoute(server.RoutingGuide{Url: "/echo/{echoString}", Method: protocol.GET, Handler: echo})
+	router.AddRoute(server.RoutingGuide{Url: "/echo/:echoString", Method: protocol.GET, Handler: echo})
 	router.AddRoute(server.RoutingGuide{Url: "/user-agent", Method: protocol.GET, Handler: userAgent})
-	router.AddRoute(server.RoutingGuide{Url: "/files/**", Method: protocol.GET, Handler: servContent})
+	router.AddRoute(server.RoutingGuide{Url: "/files/**", Method: protocol.GET, Handler: serveContent, RouteType: server.CONTENT})
 	router.AddRoute(server.RoutingGuide{Url: "/files/**", Method: protocol.POST, Handler: createContent})
 	return router
 }
@@ -36,7 +36,7 @@ func createContent(request *protocol.HttpRequest) *protocol.HttpResponse {
 	url := request.Http.EndPoint
 	exp := regexp.MustCompile(`(/files)(/.*)`)
 	rewrittenUrl := exp.ReplaceAllString(url, `$2`)
-	fileContent := request.Http.Body
+	fileContent := request.Body
 
 	// create the response
 	httpResponse := protocol.NewHttpResponse(request)
@@ -47,7 +47,7 @@ func createContent(request *protocol.HttpRequest) *protocol.HttpResponse {
 	if err != nil {
 		httpResponse.Http.Headers["Content-Type"] = []string{"text/plain"}
 		httpResponse.ResponseCode = protocol.INTERNAL_SERVER_ERROR
-		httpResponse.Http.Body = err.Error()
+		httpResponse.Body = []byte(err.Error())
 		return nil
 	}
 	httpResponse.ResponseCode = protocol.CREATED
@@ -55,7 +55,7 @@ func createContent(request *protocol.HttpRequest) *protocol.HttpResponse {
 	return httpResponse
 }
 
-func servContent(request *protocol.HttpRequest) *protocol.HttpResponse {
+func serveContent(request *protocol.HttpRequest) *protocol.HttpResponse {
 	url := request.Http.EndPoint
 	exp := regexp.MustCompile(`(/files)(/.*)`)
 	rewrittenUrl := exp.ReplaceAllString(url, `$2`)
@@ -79,13 +79,13 @@ func servContent(request *protocol.HttpRequest) *protocol.HttpResponse {
 		return nil
 	}
 	httpResponse.ResponseCode = protocol.OK
-	httpResponse.Http.Body = string(file)
+	httpResponse.Body = file
 	return httpResponse
 }
 
 func userAgent(request *protocol.HttpRequest) *protocol.HttpResponse {
 	httpResponse := protocol.NewHttpResponse(request)
-	httpResponse.Http.Body = strings.Join(request.Http.Headers["User-Agent"], "")
+	httpResponse.Body = []byte(strings.Join(request.Http.Headers["User-Agent"], ""))
 	httpResponse.Http.Headers["Content-Type"] = []string{"text/plain"}
 	httpResponse.ResponseCode = protocol.OK
 	return httpResponse
@@ -94,7 +94,7 @@ func userAgent(request *protocol.HttpRequest) *protocol.HttpResponse {
 func echo(request *protocol.HttpRequest) *protocol.HttpResponse {
 
 	httpResponse := protocol.NewHttpResponse(request)
-	httpResponse.Http.Body = request.PathParams["echoString"]
+	httpResponse.Body = []byte(request.PathParams["echoString"])
 	httpResponse.Http.Headers["Content-Type"] = []string{"text/plain"}
 	httpResponse.ResponseCode = protocol.OK
 	return httpResponse
@@ -102,7 +102,7 @@ func echo(request *protocol.HttpRequest) *protocol.HttpResponse {
 
 func homePage(request *protocol.HttpRequest) *protocol.HttpResponse {
 	httpResponse := protocol.NewHttpResponse(request)
-	httpResponse.Http.Body = "All OK!"
+	httpResponse.Body = []byte("All OK!")
 	httpResponse.ResponseCode = protocol.OK
 	return httpResponse
 }

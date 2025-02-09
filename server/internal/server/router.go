@@ -1,12 +1,18 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/saravanastar/bango/internal/protocol"
 )
+
+type UrlTrie struct {
+	urlString     string
+	isComplete    bool
+	routingGuides []*RoutingGuide
+	urlMap        map[string]*UrlTrie
+}
 
 type RoutingGuide struct {
 	Method  protocol.HttpMethod
@@ -23,6 +29,11 @@ const (
 	PROXY    RouteType = "PROXY"
 )
 
+type IRouter interface {
+	AddRoute(routingGuide RoutingGuide) (bool, error)
+	GetRoutingGuide(request protocol.HttpRequest) (*RoutingGuide, error)
+}
+
 type Router struct {
 	routingGuides []RoutingGuide
 	urlTrie       *UrlTrie
@@ -37,10 +48,27 @@ func (router *Router) AddRoute(routingGuide RoutingGuide) (bool, error) {
 	return router.addRouteTrie(&routingGuide)
 }
 
+func (router *Router) GET(url string, handler func(request *protocol.HttpRequest) *protocol.HttpResponse) (bool, error) {
+	return router.AddRoute(RoutingGuide{Url: url, Method: protocol.GET, Handler: handler})
+}
+
+func (router *Router) POST(url string, handler func(request *protocol.HttpRequest) *protocol.HttpResponse) (bool, error) {
+	return router.AddRoute(RoutingGuide{Url: url, Method: protocol.POST, Handler: handler})
+}
+
+func (router *Router) PUT(url string, handler func(request *protocol.HttpRequest) *protocol.HttpResponse) (bool, error) {
+	return router.AddRoute(RoutingGuide{Url: url, Method: protocol.PUT, Handler: handler})
+}
+
+func (router *Router) DELETE(url string, handler func(request *protocol.HttpRequest) *protocol.HttpResponse) (bool, error) {
+	return router.AddRoute(RoutingGuide{Url: url, Method: protocol.DELETE, Handler: handler})
+}
+
+// addRouteTrie adds the routing guide to the url trie
 func (router *Router) addRouteTrie(routingGuide *RoutingGuide) (bool, error) {
 	url := routingGuide.Url
 	if url == "" {
-		return false, errors.New("url can't be empty")
+		return false, fmt.Errorf("end point can't be empty")
 	}
 
 	urlArray := strings.Split(url, "/")
@@ -48,9 +76,6 @@ func (router *Router) addRouteTrie(routingGuide *RoutingGuide) (bool, error) {
 
 	for index := 0; index < len(urlArray); index++ {
 		currentUrlPath := urlArray[index]
-		// if (index+1) != len(urlArray) && currentUrlPath == "" {
-		// 	continue
-		// }
 		if (index + 1) == len(urlArray) {
 			currentTrie.urlString = currentUrlPath
 			currentTrie.isComplete = true
@@ -78,69 +103,68 @@ func (router *Router) addRouteTrie(routingGuide *RoutingGuide) (bool, error) {
 	return true, nil
 }
 
-/*
-*
-/api/request/users/{userId}
-*
-*/
+// GetRoutingGuide returns the routing guide for the given request
 func (router *Router) GetRoutingGuide(request protocol.HttpRequest) (*RoutingGuide, error) {
 	url := request.Http.EndPoint
 	if url == "" {
-		return nil, errors.New("url can't be empty")
+		return nil, fmt.Errorf("end point can't be empty")
 	}
 
 	urlArray := strings.Split(url, "/")
 	currentTrie := router.urlTrie
-
-	return router.getRoutingGuideByRecursion(request, 0, urlArray, currentTrie), nil
-
+	routingGuide := router.getRoutingGuideByRecursion(request, 0, urlArray, currentTrie)
+	if routingGuide == nil {
+		return nil, fmt.Errorf("routing guide not found for the endpoint %v", request.Http.EndPoint)
+	}
+	return routingGuide, nil
 }
 
+// getRoutingGuideByRecursion returns the routing guide for the given request
 func (router *Router) getRoutingGuideByRecursion(request protocol.HttpRequest, urlIndex int, urlArray []string, currentTrie *UrlTrie) *RoutingGuide {
-
 	if urlIndex+1 == len(urlArray) && (currentTrie == nil || !currentTrie.isComplete || currentTrie.urlString != urlArray[urlIndex]) {
 		return nil
-	} else if urlIndex+1 == len(urlArray) && currentTrie.isComplete && currentTrie.urlString == urlArray[urlIndex] {
+	} else if urlIndex == len(urlArray)-1 && currentTrie.isComplete && (currentTrie.urlString == urlArray[urlIndex] || currentTrie.urlString == "*" || currentTrie.urlString == "**") {
 		return router.findMatchingRoutingGuideWithMethod(request, currentTrie)
 	} else if currentTrie.urlString == urlArray[urlIndex] {
 		// if url index end of the incoming url but current url trie is not complete return nil
-		if urlIndex+1 == len(urlArray) && !currentTrie.isComplete {
+		if urlIndex == len(urlArray)-1 && !currentTrie.isComplete {
 			return nil
 		}
-		// if next url part match not found in the map then return nil
-		nextUrlTrie, ok := currentTrie.urlMap[urlArray[urlIndex+1]]
-		if !ok {
-			// if match not found check whether any path param is present
-			for url, nextTrieVal := range currentTrie.urlMap {
-				if url == "**" {
-					return router.findMatchingRoutingGuideWithMethod(request, nextTrieVal)
-				}
-				if len(url) > 1 && url[0] == '{' {
-					fmt.Printf("Formating %v", len(urlArray))
-					// Check the whether its end of input url slice and trie also complete, if so return it
-					if urlIndex+1 == len(urlArray)-1 && nextTrieVal.isComplete {
-						// copy the path params and value
-						request.PathParams[nextTrieVal.urlString[1:len(nextTrieVal.urlString)-1]] = urlArray[urlIndex+1]
+		if urlIndex == len(urlArray)-1 {
+			return nil
+		}
+		nextUrlTrie := currentTrie
+		for nextUrlTrie != nil {
+			if urlIndex == len(urlArray)-1 {
+				return nil
+			}
+			// if url index end of the incoming url but current url trie is not complete return nil
+			upComingTrie, ok := nextUrlTrie.urlMap[urlArray[urlIndex+1]]
+			if !ok {
+				urlIndex++
+				for url, nextTrieVal := range nextUrlTrie.urlMap {
+
+					if url == "**" || url == "*" {
 						return router.findMatchingRoutingGuideWithMethod(request, nextTrieVal)
 					}
-					// if not end of the array, then skip the pathparam matching and move cursor to further more
-					if urlIndex+2 < len(urlArray) {
-						if furhterMore, ok := nextTrieVal.urlMap[urlArray[urlIndex+2]]; ok {
-							pathParamRouteExist := router.getRoutingGuideByRecursion(request, urlIndex+2, urlArray, furhterMore)
-							if pathParamRouteExist != nil {
-								request.PathParams[url[0:len(url)-1]] = urlArray[urlIndex]
-								return pathParamRouteExist
-							}
+					if len(url) > 1 && url[0] == ':' {
+						request.PathParams[url[1:]] = urlArray[urlIndex]
+						if urlIndex+1 >= len(urlArray) && nextTrieVal.isComplete {
+							return router.findMatchingRoutingGuideWithMethod(request, nextTrieVal)
 						}
+						if urlIndex+1 >= len(urlArray) && !nextTrieVal.isComplete {
+							return nil
+						}
+						nextUrlTrie = nextTrieVal
+						break
 					}
-
 				}
+			} else {
+				return router.getRoutingGuideByRecursion(request, urlIndex+1, urlArray, upComingTrie)
 			}
-		}
-		// if match found in the next url part, call recursive function to move further
-		return router.getRoutingGuideByRecursion(request, urlIndex+1, urlArray, nextUrlTrie)
-	}
 
+		}
+	}
 	return nil
 }
 
@@ -152,11 +176,4 @@ func (router *Router) findMatchingRoutingGuideWithMethod(request protocol.HttpRe
 		}
 	}
 	return nil
-}
-
-type UrlTrie struct {
-	urlString     string
-	isComplete    bool
-	routingGuides []*RoutingGuide
-	urlMap        map[string]*UrlTrie
 }

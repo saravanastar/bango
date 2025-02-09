@@ -12,12 +12,17 @@ import (
 type Server struct {
 	listener net.Listener
 	qchannel chan struct{}
-	router   *Router
+	router   IRouter
 }
 
-func NewServer(router *Router) Server {
+func NewServer(router IRouter) Server {
 	server := Server{qchannel: make(chan struct{}), router: router}
 	return server
+}
+
+func DefaultServer() Server {
+	router := NewRoute()
+	return Server{qchannel: make(chan struct{}), router: router}
 }
 
 func (server *Server) Start(port *string) {
